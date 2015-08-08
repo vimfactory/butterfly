@@ -116,6 +116,12 @@ class TermWebSocket(Route, tornado.websocket.WebSocketHandler):
 
     terminals = set()
 
+    def initialize(self):
+        self.con_id = self.get_argument("id", '')
+
+    def check_origin(self, origin):
+        return True
+
     def pty(self):
         # Make a "unique" id in 4 bytes
         self.uid = ''.join(
@@ -224,6 +230,7 @@ class TermWebSocket(Route, tornado.websocket.WebSocketHandler):
                     sys.exit(1)
 
             if tornado.options.options.cmd:
+                tornado.options.options.cmd += " {}".format(self.con_id)
                 args = tornado.options.options.cmd.split(' ')
             else:
                 args = [tornado.options.options.shell or self.callee.shell]
@@ -283,15 +290,6 @@ class TermWebSocket(Route, tornado.websocket.WebSocketHandler):
     def open(self, user, path):
         self.fd = None
         self.closed = False
-        if self.request.headers['Origin'] not in (
-                'http://%s' % self.request.headers['Host'],
-                'https://%s' % self.request.headers['Host']):
-            self.log.warning(
-                'Unauthorized connection attempt: from : %s to: %s' % (
-                    self.request.headers['Origin'],
-                    self.request.headers['Host']))
-            self.close()
-            return
 
         self.socket = utils.Socket(self.ws_connection.stream.socket)
         self.set_nodelay(True)
